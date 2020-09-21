@@ -5,16 +5,23 @@ INCLUDE_FILES=$(SRCDIR)/ev++.h	\
     		$(SRCDIR)/ev_wrap.h	\
     		$(SRCDIR)/event.h 
 
-.PHONY: all clean libev
+.PHONY: all ios macos clean
 
-all: libev
+all: ios macos
 
-libev:
-	-mkdir bin
-	-mkdir lib
-	-mkdir include
+ios:
+	-mkdir -p bin
+	-mkdir -p lib
+	-mkdir -p include
 	-cp $(INCLUDE_FILES) include
-	sh $(CURDIR)/build.sh
+	sh $(CURDIR)/build-iOS.sh
+
+macos:
+	-mkdir -p bin
+	-mkdir -p lib
+	-mkdir -p include
+	-cp $(INCLUDE_FILES) include
+	sh $(CURDIR)/build-macOS.sh
 
 clean:
 	-$(MAKE) -C $(SRCDIR) distclean

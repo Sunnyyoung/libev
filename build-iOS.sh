@@ -26,6 +26,7 @@ do
   else
     HOST=$ARCH
   fi
+  OUTPUT_PATH="${ROOTPATH}/bin/${PLATFORM}${SDKVERSION}-${ARCH}.sdk"
   export OTHER_CFLAGS='-fembed-bitcode'
   export AR=`xcrun -sdk iphoneos -find ar`
   export RANLIB=`xcrun -sdk iphoneos -find ranlib`
@@ -34,12 +35,12 @@ do
   export CPPFLAGS="-arch ${ARCH} -isysroot $DEVELOPERPATH/Platforms/$PLATFORM.platform/Developer/SDKs/$PLATFORM$SDKVERSION.sdk ${MIN_VERSION} ${OTHER_CFLAGS}"
   export LDFLAGS="-arch ${ARCH} -isysroot $DEVELOPERPATH/Platforms/$PLATFORM.platform/Developer/SDKs/$PLATFORM$SDKVERSION.sdk"
   set -e
+  mkdir -p $OUTPUT_PATH
   cd $SRCPATH
   echo "Building libev-${VERSION} for ${PLATFORM} ${SDKVERSION} ${ARCH}"
-  (./configure --host=$HOST-apple-darwin)
+  (./configure --host=$HOST-apple-darwin > "${OUTPUT_PATH}/config.log")
   make clean && make
-  OUTPUT_PATH="${ROOTPATH}/bin/${PLATFORM}${SDKVERSION}-${ARCH}.sdk"
-  mkdir -p $OUTPUT_PATH && cp .libs/libev.a $OUTPUT_PATH
+  cp .libs/libev.a $OUTPUT_PATH
   set +e
 done
 
