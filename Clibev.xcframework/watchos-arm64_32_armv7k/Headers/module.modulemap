@@ -1,0 +1,4 @@
+module Clibev {
+    header "ev.h"
+    export *
+}

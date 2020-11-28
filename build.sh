@@ -1,5 +1,6 @@
 #! /bin/sh
 
+export ROOT="$(pwd)"
 export SRC="$(pwd)/libev-4.33"
 
 export PREFIX="$(pwd)/build"
@@ -37,7 +38,7 @@ echo "Buiding..."
 APPLE_SILICON_SUPPORTED=false
 echo 'int main(void){return 0;}' >comptest.c && cc --target=arm64-macos comptest.c 2>/dev/null && APPLE_SILICON_SUPPORTED=true
 rm -f comptest.c
-rm -r a.out
+rm -f a.out
 
 NPROCESSORS=$(getconf NPROCESSORS_ONLN 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null)
 PROCESSORS=${NPROCESSORS:-3}
@@ -402,8 +403,6 @@ done
 
 echo "Creating Clibev.xcframework..."
 
-rm -rf "${PREFIX}/Clibev.xcframework"
-
 XCFRAMEWORK_ARGS=""
 for f in macos ios ios-simulators watchos watchos-simulators tvos tvos-simulators catalyst; do
   XCFRAMEWORK_ARGS="${XCFRAMEWORK_ARGS} -library ${PREFIX}/${f}/lib/libev.a"
@@ -416,6 +415,9 @@ xcodebuild -create-xcframework \
 ls -ld -- "$PREFIX"
 ls -l -- "$PREFIX"
 ls -l -- "$PREFIX/Clibev.xcframework"
+
+rm -rf "${ROOT}/Clibev.xcframework"
+cp -a "${PREFIX}/Clibev.xcframework" ${ROOT}
 
 echo "Done!"
 
