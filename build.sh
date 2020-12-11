@@ -43,13 +43,6 @@ rm -f a.out
 NPROCESSORS=$(getconf NPROCESSORS_ONLN 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null)
 PROCESSORS=${NPROCESSORS:-3}
 
-swift_module_map() {
-  echo 'module Clibev {'
-  echo '    header "ev.h"'
-  echo '    export *'
-  echo '}'
-}
-
 build_macos() {
   export BASEDIR="${XCODEDIR}/Platforms/MacOSX.platform/Developer"
   export PATH="${BASEDIR}/usr/bin:$BASEDIR/usr/sbin:$PATH"
@@ -270,154 +263,128 @@ build_tvos_simulator >"$LOG_FILE" 2>&1 || exit 1
 echo "Building for Catalyst..."
 build_catalyst >"$LOG_FILE" 2>&1 || exit 1
 
-echo "Adding the Clibev module map for Swift..."
-
-find "$PREFIX" -name "include" -type d -print | while read -r f; do
-  swift_module_map >"${f}/module.modulemap"
-done
-
 echo "Bundling macOS targets..."
 
-mkdir -p "${PREFIX}/macos/lib"
-cp -a "${MACOS_X86_64_PREFIX}/include" "${PREFIX}/macos/"
-for ext in a dylib; do
-  if [ "$APPLE_SILICON_SUPPORTED" = "true" ]; then
-    lipo -create \
-      "${MACOS_ARM64_PREFIX}/lib/libev.${ext}" \
-      "${MACOS_X86_64_PREFIX}/lib/libev.${ext}" \
-      -output "${PREFIX}/macos/lib/libev.${ext}"
-  else
-    lipo -create \
-      "${MACOS_X86_64_PREFIX}/lib/libev.${ext}" \
-      -output "${PREFIX}/macos/lib/libev.${ext}"
-  fi
-done
+mkdir -p "${PREFIX}/macos/lib" "${PREFIX}/macos/include/libev"
+cp -a "${MACOS_X86_64_PREFIX}/include/" "${PREFIX}/macos/include/libev"
+if [ "$APPLE_SILICON_SUPPORTED" = "true" ]; then
+  lipo -create \
+    "${MACOS_ARM64_PREFIX}/lib/libev.a" \
+    "${MACOS_X86_64_PREFIX}/lib/libev.a" \
+    -output "${PREFIX}/macos/lib/libev.a"
+else
+  lipo -create \
+    "${MACOS_X86_64_PREFIX}/lib/libev.a" \
+    -output "${PREFIX}/macos/lib/libev.a"
+fi
 
 echo "Bundling iOS targets..."
 
-mkdir -p "${PREFIX}/ios/lib"
-cp -a "${IOS64_PREFIX}/include" "${PREFIX}/ios/"
-for ext in a dylib; do
-  lipo -create \
-    "$IOS32_PREFIX/lib/libev.${ext}" \
-    "$IOS32s_PREFIX/lib/libev.${ext}" \
-    "$IOS64_PREFIX/lib/libev.${ext}" \
-    -output "$PREFIX/ios/lib/libev.${ext}"
-done
+mkdir -p "${PREFIX}/ios/lib" "${PREFIX}/ios/include/libev"
+cp -a "${IOS64_PREFIX}/include/" "${PREFIX}/ios/include/libev"
+lipo -create \
+  "$IOS32_PREFIX/lib/libev.a" \
+  "$IOS32s_PREFIX/lib/libev.a" \
+  "$IOS64_PREFIX/lib/libev.a" \
+  -output "$PREFIX/ios/lib/libev.a"
 
 echo "Bundling iOS simulators..."
 
-mkdir -p "${PREFIX}/ios-simulators/lib"
-cp -a "${IOS_SIMULATOR_X86_64_PREFIX}/include" "${PREFIX}/ios-simulators/"
-for ext in a dylib; do
-  if [ "$APPLE_SILICON_SUPPORTED" = "true" ]; then
-    lipo -create \
-      "${IOS_SIMULATOR_ARM64_PREFIX}/lib/libev.${ext}" \
-      "${IOS_SIMULATOR_I386_PREFIX}/lib/libev.${ext}" \
-      "${IOS_SIMULATOR_X86_64_PREFIX}/lib/libev.${ext}" \
-      -output "${PREFIX}/ios-simulators/lib/libev.${ext}" || exit 1
-  else
-    lipo -create \
-      "${IOS_SIMULATOR_I386_PREFIX}/lib/libev.${ext}" \
-      "${IOS_SIMULATOR_X86_64_PREFIX}/lib/libev.${ext}" \
-      -output "${PREFIX}/ios-simulators/lib/libev.${ext}" || exit 1
-  fi
-done
+mkdir -p "${PREFIX}/ios-simulators/lib" "${PREFIX}/ios-simulators/include/libev"
+cp -a "${IOS_SIMULATOR_X86_64_PREFIX}/include/" "${PREFIX}/ios-simulators/include/libev"
+if [ "$APPLE_SILICON_SUPPORTED" = "true" ]; then
+  lipo -create \
+    "${IOS_SIMULATOR_ARM64_PREFIX}/lib/libev.a" \
+    "${IOS_SIMULATOR_I386_PREFIX}/lib/libev.a" \
+    "${IOS_SIMULATOR_X86_64_PREFIX}/lib/libev.a" \
+    -output "${PREFIX}/ios-simulators/lib/libev.a" || exit 1
+else
+  lipo -create \
+    "${IOS_SIMULATOR_I386_PREFIX}/lib/libev.a" \
+    "${IOS_SIMULATOR_X86_64_PREFIX}/lib/libev.a" \
+    -output "${PREFIX}/ios-simulators/lib/libev.a" || exit 1
+fi
 
 echo "Bundling watchOS targets..."
 
-mkdir -p "${PREFIX}/watchos/lib"
-cp -a "${WATCHOS64_32_PREFIX}/include" "${PREFIX}/watchos/"
-for ext in a dylib; do
-  lipo -create \
-    "${WATCHOS32_PREFIX}/lib/libev.${ext}" \
-    "${WATCHOS64_32_PREFIX}/lib/libev.${ext}" \
-    -output "${PREFIX}/watchos/lib/libev.${ext}"
-done
+mkdir -p "${PREFIX}/watchos/lib" "${PREFIX}/watchos/include/libev"
+cp -a "${WATCHOS64_32_PREFIX}/include/" "${PREFIX}/watchos/include/libev"
+lipo -create \
+  "${WATCHOS32_PREFIX}/lib/libev.a" \
+  "${WATCHOS64_32_PREFIX}/lib/libev.a" \
+  -output "${PREFIX}/watchos/lib/libev.a"
 
 echo "Bundling watchOS simulators..."
 
-mkdir -p "${PREFIX}/watchos-simulators/lib"
-cp -a "${WATCHOS_SIMULATOR_X86_64_PREFIX}/include" "${PREFIX}/watchos-simulators/"
-for ext in a dylib; do
-  if [ "$APPLE_SILICON_SUPPORTED" = "true" ]; then
-    lipo -create \
-      "${WATCHOS_SIMULATOR_ARM64_PREFIX}/lib/libev.${ext}" \
-      "${WATCHOS_SIMULATOR_I386_PREFIX}/lib/libev.${ext}" \
-      "${WATCHOS_SIMULATOR_X86_64_PREFIX}/lib/libev.${ext}" \
-      -output "${PREFIX}/watchos-simulators/lib/libev.${ext}"
-  else
-    lipo -create \
-      "${WATCHOS_SIMULATOR_I386_PREFIX}/lib/libev.${ext}" \
-      "${WATCHOS_SIMULATOR_X86_64_PREFIX}/lib/libev.${ext}" \
-      -output "${PREFIX}/watchos-simulators/lib/libev.${ext}"
-  fi
-done
+mkdir -p "${PREFIX}/watchos-simulators/lib" "${PREFIX}/watchos-simulators/include/libev"
+cp -a "${WATCHOS_SIMULATOR_X86_64_PREFIX}/include/" "${PREFIX}/watchos-simulators/include/libev"
+if [ "$APPLE_SILICON_SUPPORTED" = "true" ]; then
+  lipo -create \
+    "${WATCHOS_SIMULATOR_ARM64_PREFIX}/lib/libev.a" \
+    "${WATCHOS_SIMULATOR_I386_PREFIX}/lib/libev.a" \
+    "${WATCHOS_SIMULATOR_X86_64_PREFIX}/lib/libev.a" \
+    -output "${PREFIX}/watchos-simulators/lib/libev.a"
+else
+  lipo -create \
+    "${WATCHOS_SIMULATOR_I386_PREFIX}/lib/libev.a" \
+    "${WATCHOS_SIMULATOR_X86_64_PREFIX}/lib/libev.a" \
+    -output "${PREFIX}/watchos-simulators/lib/libev.a"
+fi
 
 echo "Bundling tvOS targets..."
 
-mkdir -p "${PREFIX}/tvos/lib"
-cp -a "${TVOS64_PREFIX}/include" "${PREFIX}/tvos/"
-for ext in a dylib; do
-  lipo -create \
-    "$TVOS64_PREFIX/lib/libev.${ext}" \
-    -output "$PREFIX/tvos/lib/libev.${ext}"
-done
+mkdir -p "${PREFIX}/tvos/lib" "${PREFIX}/tvos/include/libev"
+cp -a "${TVOS64_PREFIX}/include/" "${PREFIX}/tvos/include/libev"
+lipo -create \
+  "$TVOS64_PREFIX/lib/libev.a" \
+  -output "$PREFIX/tvos/lib/libev.a"
 
 echo "Bundling tvOS simulators..."
 
-mkdir -p "${PREFIX}/tvos-simulators/lib"
-cp -a "${TVOS_SIMULATOR_X86_64_PREFIX}/include" "${PREFIX}/tvos-simulators/"
-for ext in a dylib; do
-  if [ "$APPLE_SILICON_SUPPORTED" = "true" ]; then
-    lipo -create \
-      "${TVOS_SIMULATOR_ARM64_PREFIX}/lib/libev.${ext}" \
-      "${TVOS_SIMULATOR_X86_64_PREFIX}/lib/libev.${ext}" \
-      -output "${PREFIX}/tvos-simulators/lib/libev.${ext}" || exit 1
-  else
-    lipo -create \
-      "${TVOS_SIMULATOR_X86_64_PREFIX}/lib/libev.${ext}" \
-      -output "${PREFIX}/tvos-simulators/lib/libev.${ext}" || exit 1
-  fi
-done
+mkdir -p "${PREFIX}/tvos-simulators/lib" "${PREFIX}/tvos-simulators/include/libev"
+cp -a "${TVOS_SIMULATOR_X86_64_PREFIX}/include/" "${PREFIX}/tvos-simulators/include/libev"
+if [ "$APPLE_SILICON_SUPPORTED" = "true" ]; then
+  lipo -create \
+    "${TVOS_SIMULATOR_ARM64_PREFIX}/lib/libev.a" \
+    "${TVOS_SIMULATOR_X86_64_PREFIX}/lib/libev.a" \
+    -output "${PREFIX}/tvos-simulators/lib/libev.a" || exit 1
+else
+  lipo -create \
+    "${TVOS_SIMULATOR_X86_64_PREFIX}/lib/libev.a" \
+    -output "${PREFIX}/tvos-simulators/lib/libev.a" || exit 1
+fi
 
 echo "Bundling Catalyst targets..."
 
-mkdir -p "${PREFIX}/catalyst/lib"
-cp -a "${CATALYST_X86_64_PREFIX}/include" "${PREFIX}/catalyst/"
-for ext in a dylib; do
-  if [ ! -f "${CATALYST_X86_64_PREFIX}/lib/libev.${ext}" ]; then
-    continue
-  fi
-  if [ "$APPLE_SILICON_SUPPORTED" = "true" ]; then
-    lipo -create \
-      "${CATALYST_ARM64_PREFIX}/lib/libev.${ext}" \
-      "${CATALYST_X86_64_PREFIX}/lib/libev.${ext}" \
-      -output "${PREFIX}/catalyst/lib/libev.${ext}"
-  else
-    lipo -create \
-      "${CATALYST_X86_64_PREFIX}/lib/libev.${ext}" \
-      -output "${PREFIX}/catalyst/lib/libev.${ext}"
-  fi
-done
+mkdir -p "${PREFIX}/catalyst/lib" "${PREFIX}/catalyst/include/libev"
+cp -a "${CATALYST_X86_64_PREFIX}/include/" "${PREFIX}/catalyst/include/libev"
+if [ ! -f "${CATALYST_X86_64_PREFIX}/lib/libev.a" ]; then
+  continue
+fi
+if [ "$APPLE_SILICON_SUPPORTED" = "true" ]; then
+  lipo -create \
+    "${CATALYST_ARM64_PREFIX}/lib/libev.a" \
+    "${CATALYST_X86_64_PREFIX}/lib/libev.a" \
+    -output "${PREFIX}/catalyst/lib/libev.a"
+else
+  lipo -create \
+    "${CATALYST_X86_64_PREFIX}/lib/libev.a" \
+    -output "${PREFIX}/catalyst/lib/libev.a"
+fi
 
-echo "Creating Clibev.xcframework..."
+echo "Creating libev.xcframework..."
 
 XCFRAMEWORK_ARGS=""
 for f in macos ios ios-simulators watchos watchos-simulators tvos tvos-simulators catalyst; do
   XCFRAMEWORK_ARGS="${XCFRAMEWORK_ARGS} -library ${PREFIX}/${f}/lib/libev.a"
   XCFRAMEWORK_ARGS="${XCFRAMEWORK_ARGS} -headers ${PREFIX}/${f}/include"
 done
-xcodebuild -create-xcframework \
-  ${XCFRAMEWORK_ARGS} \
-  -output "${PREFIX}/Clibev.xcframework" >/dev/null
+xcodebuild -create-xcframework ${XCFRAMEWORK_ARGS} -output "${PREFIX}/libev.xcframework" >/dev/null
 
-ls -ld -- "$PREFIX"
-ls -l -- "$PREFIX"
-ls -l -- "$PREFIX/Clibev.xcframework"
+ls -l -- "$PREFIX/libev.xcframework"
 
-rm -rf "${ROOT}/Clibev.xcframework"
-cp -a "${PREFIX}/Clibev.xcframework" ${ROOT}
+rm -rf "${ROOT}/libev.xcframework"
+cp -a "${PREFIX}/libev.xcframework" ${ROOT}
 
 echo "Done!"
 

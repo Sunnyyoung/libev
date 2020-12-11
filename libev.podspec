@@ -12,5 +12,5 @@ Pod::Spec.new do |spec|
   spec.watchos.deployment_target = "2.0"
   spec.tvos.deployment_target = "8.0"
 
-  spec.vendored_frameworks = "Clibev.xcframework"
+  spec.vendored_frameworks = "libev.xcframework"
 end
